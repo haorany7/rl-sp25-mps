@@ -1,0 +1,6 @@
+gymnasium
+pygame
+absl-py
+numpy
+gradescope-utils
+pytest
