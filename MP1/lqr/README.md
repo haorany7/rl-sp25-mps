@@ -24,6 +24,7 @@ non-linear system about a stable fixed point.
    v[t+1] = v[t] + u[t]*dt
    ```
    2.1 **[1pts]** Write down the `A` and `B` matrices for this linear system.
+   
    2.2 **[7pts - autograded]** We want to control the acceleration for this point mass to
    bring it at rest at the origin. We will do so, by minimizing the sum over
    time of the following cost function: `x[t]^2 + v[t]^2 + u[t]^2`. Solve for a
@@ -45,7 +46,7 @@ non-linear system about a stable fixed point.
       gradescope to have it autograded.  Make sure to include all autograded
       components from all components of MP1 for your final submission.
 
-3. **Stabilizing an inverted pendulum.** Next, we will stabilize a
+4. **Stabilizing an inverted pendulum.** Next, we will stabilize a
    non-linear system about an unstable fixed point. We will work with an
    undamped pendulum of unit length, unit mass on a planet with `g=10`.
    Dynamics for a pendulum are governed using the equations
