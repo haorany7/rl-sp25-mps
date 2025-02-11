@@ -3,7 +3,7 @@
 
 Part 1: [Linear Quadratic Regulators](./lqr/)
 
-Part 2: Coming Soon
+Part 2: [Training Neural Networks for 6DOF Pose Estimation](./6DOF) 
 
 #### Instructions
 1. Assignment is due at 11:59:59PM on Thursday Feb 27, 2025.
