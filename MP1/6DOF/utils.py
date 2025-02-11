@@ -42,7 +42,7 @@ def make_rotation_matrix(R_in):
         neg_idx = det < 0
         # Flip the sign of the last column of U for rows where det < 0
         S[neg_idx, -1] *= -1
-        R_out = U @ torch.diag_embed(S) @ Vh.mT
+        R_out = U @ torch.diag_embed(S) @ Vh
         return R_out
      
 def get_metrics(cls, R, t, gt_cls, gt_R, gt_t, R_thresh=0.5, t_thresh=0.1):
