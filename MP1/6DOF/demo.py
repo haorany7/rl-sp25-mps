@@ -27,6 +27,7 @@ flags.DEFINE_integer('preload_images', 1,
     'Weather to preload train and val images at beginning of training.')
 flags.DEFINE_multi_integer('lr_step', [60000, 80000], 'Iterations to reduce learning rate')
 
+
 log_every = 20
 
 
@@ -74,7 +75,8 @@ def main(_):
         'cls_accuracy': [],
         'cls_R_accuracy': [],
         'cls_t_accuracy': [],
-        'cls_R_t_accuracy': []
+        'cls_R_t_accuracy': [],
+        'overall': [],
     }
      
     for i in range(FLAGS.max_iter):
@@ -154,7 +156,8 @@ def main(_):
 
             times_np, cls_loss_np, R_loss_np, t_loss_np, total_loss_np = [], [], [], [], []
             metrics_np = {
-                'cls_accuracy': [], 'cls_R_accuracy': [], 'cls_t_accuracy': [],'cls_R_t_accuracy': []
+                'cls_accuracy': [], 'cls_R_accuracy': [], 'cls_t_accuracy': [],
+                'cls_R_t_accuracy': [], 'overall': [],
             }
 
         if (i+1) % FLAGS.save_every == 0:
@@ -164,16 +167,15 @@ def main(_):
             print('')
             logging.info(f'Validating at {i+1} iterations.')
             val_dataloader = DataLoader(dataset_val, batch_size=1, num_workers=0)
-            result_file_name = f'{FLAGS.output_dir}/metrics_{i+1:06d}_val.json'
+            result_file_name = f'{FLAGS.output_dir}/predictions_{i+1:06d}_val.json'
             model.eval()
 
             results, metrics_np_val = test(val_dataloader, device, model, 
                      result_file_name)
-            val_metric = 0
             for key, value in metrics_np_val.items():
                 writer.add_scalar(f'metrics/val-{key}', np.mean(value), i+1)
                 logger(f'metrics/val-{key}', np.mean(value), i+1)
-                val_metric += np.mean(value)
+            val_metric = np.mean(metrics_np_val['overall'])
             
             if val_metric > previous_best_val_metric:
                 print('')

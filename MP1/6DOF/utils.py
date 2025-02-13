@@ -2,10 +2,6 @@ import torch
 import json
 import logging
 import numpy as np
-from absl import flags
-
-FLAGS = flags.FLAGS
-
 
 def setup_logging():
     log_formatter = logging.Formatter(
@@ -70,13 +66,15 @@ def get_metrics(cls, R, t, gt_cls, gt_R, gt_t, R_thresh=0.5, t_thresh=0.1):
         'cls_t_accuracy': cls_t_accuracy.item(),
         'cls_R_t_accuracy': cls_R_t_accuracy.item()
     }
+    out['overall'] = np.sum(list(out.values()))
     return out
 
 def test(dataloader, device, model, result_file_name):
     model.eval()
     results = {}
     metrics_np = {'cls_accuracy': [], 'cls_R_accuracy': [], 
-                  'cls_t_accuracy': [],'cls_R_t_accuracy': []}
+                  'cls_t_accuracy': [],'cls_R_t_accuracy': [],
+                  'overall': []}
     for i, item in enumerate(dataloader):
         image, bbox, gt_cls, gt_R, gt_t, key_name = item 
         image = image.to(device, non_blocking=True)

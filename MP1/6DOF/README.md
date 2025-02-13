@@ -18,6 +18,13 @@ transfer training labels onto real images, to train neural networks that can
 directly predict grasps from images, as done, for example, in the [AnyGrasp
 work](https://arxiv.org/abs/2212.08333).
 
+### Change Log
+1. 2025-02-13: 
+    - Added more details for the metrics in README.md
+    - Added `overall` metric to tensorboard logging
+    - Small other changes: fixed filename for val predictions
+    - Grading scheme
+
 
 ### Infrastructure
 
@@ -48,14 +55,16 @@ score.
 At inference time, you will be given an image and a bounding box. Your model 
 needs to predict a) which of the 13 objects it is, and b) its pose (rotation
 matrix and translation vector). We will use the following metrics to evaluate
-the performance of your model. 
+the performance of your model. We will calculate the rotation and translation of
+the relative transformation between the predicted and ground truth pose, and 
+compute the following metrics:
 - `cls_accuracy`: accuracy of the predicted class
-- `cls_R_accuray`: class was correct and predicted rotation was within 0.5
-radians
-- `cls_t_accuracy`: class was correct and predicted translation was within 0.1
-metres
-- `cls_R_t_accuracy`: class was correct and predicted rotation and translation
-were within 0.5 radians and 0.1 metres respectively
+- `cls_R_accuray`: class was correct and relative rotation was within 0.5 radians
+- `cls_t_accuracy`: class was correct and relative translation was within 0.1 metres
+- `cls_R_t_accuracy`: class was correct and relative rotation and translation were within 0.5 radians and 0.1 metres respectively
+- `overall`: the sum of the above 4 accuracies
+
+We will use `overall` as the primary metric for grading.
 
 ### Your Work
 
@@ -93,7 +102,7 @@ quaternion, 6D rotation representation, etc. My understanding is that predicting
 [6D rotations works the best](https://arxiv.org/abs/1812.07035), but you are
 welcome to try different things.
 
-4. Even whe you input crops into the nwtwork, you may still find it helpful to
+4. Even when you input crops into the nwtwork, you may still find it helpful to
 input the location of the bounding box in the original image into the network,
 see [Mitigating Perspective Distortion-induced Shape
 Ambiguity](https://ap229997.github.io/projects/ambiguity/assets/paper.pdf).
@@ -109,12 +118,16 @@ loss functions.
 can try: data augmentation, better optimizers, better learning rate schedules,
 different architectures, different loss functions.
 
+
 ### Submission
 You will need to submit the following to Gradescope:
-- *MP1-part2-code* [20 pts Autograded]:
-    - Your test set predictions. 
+- 1. *MP1-code* [20 pts Autograded]:
+    - Your test set predictions, renamed to a file called `predictions_test.json`.
     - Your code, including `network.py`, `dataset.py`, `demo.py`, `utils.py`, and any other files that you write, as `.py` files.
-- *MP1-part2-report* [10 pts Manual Grading]:
+    - Getting an overall score of 2.5 on the test set, will provide you 20/20
+    credit for this question. Please make sure to submit your associated code.
+    We reserve the right to take off points if the code is not submitted. 
+- 2. *MP1-report* [10 pts Manual Grading]:
     - A report that describes what changes you made and what impact did those
     have on the performance of your model. Consider making a table with *control
     experiments*, where you compare the performance of different changes you
