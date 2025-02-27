@@ -132,6 +132,6 @@ You will need to submit the following to Gradescope:
     have on the performance of your model. Consider making a table with *control
     experiments*, where you compare the performance of different changes you
     made to the models, training recipes, and hyperparameters.
-    - Your final model, training recipe, and hyperparameters.
+    - Your final model **architecture**, training recipe, and hyperparameters.
     - A plot of the validation metrics over epochs for your best (or close to best) model.
     
