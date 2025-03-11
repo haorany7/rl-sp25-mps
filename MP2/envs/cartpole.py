@@ -102,7 +102,7 @@ class CartPoleEnv(gym.Env):
         return [seed]
 
     def step(self, action):
-        action = action[0]
+        # action = action[0]
         err_msg = "%r (%s) invalid" % (action, type(action))
         assert self.action_space.contains(action), err_msg
 

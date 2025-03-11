@@ -23,14 +23,14 @@ class DQNPolicy(nn.Module):
   
     def act(self, x, epsilon=0.):
         qvals = self.forward(x)
-        act = torch.argmax(qvals, 1, keepdim=True)
+        act = torch.argmax(qvals, 1)
         if epsilon > 0:
             act_random = torch.multinomial(torch.ones(qvals.shape[1],), 
                                            act.shape[0], replacement=True)
-            act_random = act_random.reshape(-1,1).to(self.device)
+            act_random = act_random.to(self.device)
             combine = torch.rand(qvals.shape[0], 1) > epsilon
             combine = combine.float().to(self.device)
-            act = act * combine + (1-combine) * act_random
+            act = act * combine.squeeze() + (1-combine.squeeze()) * act_random
             act = act.long()
         return act
 

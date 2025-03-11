@@ -44,7 +44,11 @@ def main(_):
     # Setting up validation environments.
     val_envs = [gym.make(FLAGS.env_name) for _ in range(FLAGS.num_episodes)]
     [env.reset(seed=i+1000) for i, env in enumerate(val_envs)]
+    #print("--------------------------------val_envs", val_envs)
+    #print val function
     val_fn = lambda model, device: val(model, device, val_envs, FLAGS.episode_len)
+    #print("--------------------------------val_fn", val_fn)
+    
 
     torch.set_num_threads(1)
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
