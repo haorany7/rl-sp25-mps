@@ -84,4 +84,65 @@ class ActorCriticPolicy(nn.Module):
             # print("val of action inside act: ", action)
         return action
 
+class QActorCriticPolicy(nn.Module):
+    def __init__(self, input_dim, hidden_layers, output_dim):
+        super(QActorCriticPolicy, self).__init__()
+        
+        # Initialize actor network
+        actor_layers = []
+        prev_dim = input_dim
+        for hidden_dim in hidden_layers:
+            actor_layers.append(nn.Linear(prev_dim, hidden_dim))
+            actor_layers.append(nn.ReLU())
+            prev_dim = hidden_dim
+        actor_layers.append(nn.Linear(prev_dim, output_dim))
+        self.actor = nn.Sequential(*actor_layers)
+        
+        # Initialize Q-network (critic)
+        critic_layers = []
+        prev_dim = input_dim
+        for hidden_dim in hidden_layers:
+            critic_layers.append(nn.Linear(prev_dim, hidden_dim))
+            critic_layers.append(nn.ReLU())
+            prev_dim = hidden_dim
+        critic_layers.append(nn.Linear(prev_dim, output_dim))  # Q-values for each action
+        self.critic = nn.Sequential(*critic_layers)
+        
+        # Initialize weights with orthogonal initialization
+        self.apply(self._init_weights)
+    
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            nn.init.orthogonal_(module.weight, gain=np.sqrt(2))
+            module.bias.data.zero_()
+    
+    def forward(self, x):
+        # Return both actor logits and Q-values
+        return self.actor(x), self.critic(x)
+    
+    def actor_to_distribution(self, actor_logits):
+        # Convert actor logits to probability distribution
+        return Categorical(logits=actor_logits)
+    
+    def get_q_value(self, states, actions):
+        # Get Q-values for specific state-action pairs
+        _, q_values = self.forward(states)
+        return q_values.gather(1, actions.unsqueeze(-1)).squeeze(-1)
+    
+    def act(self, states, sample=True):
+        actor_logits, _ = self.forward(states)
+        dist = self.actor_to_distribution(actor_logits)
+        
+        if sample:
+            actions = dist.sample()
+        else:
+            actions = torch.argmax(dist.probs, dim=-1)
+        
+        return actions
+
+    def get_next_value(self, x):
+        """Get maximum Q-value for next state"""
+        _, q_values = self.forward(x)
+        return q_values.max(dim=-1)[0]
+
 

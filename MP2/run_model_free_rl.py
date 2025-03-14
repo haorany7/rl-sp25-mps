@@ -8,9 +8,10 @@ import time
 import torch
 from absl import app
 from absl import flags
-from policies import DQNPolicy, ActorCriticPolicy
+from policies import DQNPolicy, ActorCriticPolicy, QActorCriticPolicy
 from trainer_ac import train_model_ac
 from trainer_dqn import train_model_dqn
+from trainer_qac import train_model_qac
 from evaluation import val, test_model_in_env
 
 FLAGS = flags.FLAGS
@@ -22,7 +23,7 @@ flags.DEFINE_boolean('vis_save', False, 'To save visualization or not')
 flags.DEFINE_integer('num_train_envs', 16, 'Number of parallel environments')
 flags.DEFINE_integer('seed', 0, 'Seed for randomly initializing policies.')
 flags.DEFINE_float('gamma', 0.99, 'Discount factor gamma.')
-flags.DEFINE_enum('algo', None, ['dqn', 'ac'], 'which algo to use, dqn or ac')
+flags.DEFINE_enum('algo', None, ['dqn', 'ac', 'qac'], 'which algo to use: dqn, ac, or qac')
 flags.DEFINE_string('logdir', None, 'Directory to store loss plots, etc.')
 flags.DEFINE_list('hidden_sizes', [64, 64], 'Hidden layer sizes')
 flags.mark_flag_as_required('logdir')
@@ -72,8 +73,20 @@ def main(_):
         model = ActorCriticPolicy(state_dim, hidden_sizes, action_dim)
         model.to(device)
         
-        # Pass ablation flags to train_model_ac
         train_model_ac(
+            model=model,
+            envs=train_envs,
+            gamma=FLAGS.gamma,
+            device=device,
+            logdir=logdir,
+            val_fn=val_fn
+        )
+    
+    elif FLAGS.algo == 'qac':
+        model = QActorCriticPolicy(state_dim, hidden_sizes, action_dim)
+        model.to(device)
+        
+        train_model_qac(
             model=model,
             envs=train_envs,
             gamma=FLAGS.gamma,
