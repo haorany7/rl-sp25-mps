@@ -32,6 +32,9 @@ class DQNPolicy(nn.Module):
             combine = combine.float().to(self.device)
             act = act * combine.squeeze() + (1-combine.squeeze()) * act_random
             act = act.long()
+        print("type of act inside DQNPolicy: ", type(act))
+        print("shape of act inside DQNPolicy: ", act.shape)
+        
         return act
 
 class ActorCriticPolicy(nn.Module):
@@ -62,8 +65,23 @@ class ActorCriticPolicy(nn.Module):
         action_distribution = self.actor_to_distribution(actor)
         if sample:
             action = action_distribution.sample()
+            # Print before any squeezing
+            # print("Original action shape:", action.shape)
+            
+            # Single squeeze() to ensure we get [batch_size]
+            action = action.squeeze()  # Remove all singleton dimensions
+            
+            # print("type of action inside act: ", type(action))
+            # print("shape of action inside act: ", action.shape)
+            # print("val of action inside act: ", action)
         else:
             action = action_distribution.probs.argmax(-1)
+            # Single squeeze() here too for consistency
+            action = action.squeeze()
+            
+            # print("type of action inside act: ", type(action))
+            # print("shape of action inside act: ", action.shape)
+            # print("val of action inside act: ", action)
         return action
 
 

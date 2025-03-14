@@ -87,6 +87,7 @@ class PrioritizedReplayBuffer:
 # environments end up in after num_steps_per_rollout time steps.
 def collect_rollouts(models, envs, states, num_steps_per_rollout, epsilon, device):
     rollouts = []
+ 
     for _ in range(num_steps_per_rollout):
         actions = []
         for model, state, env in zip(models, states, envs):
@@ -99,10 +100,11 @@ def collect_rollouts(models, envs, states, num_steps_per_rollout, epsilon, devic
                     q_values = model(state_tensor.unsqueeze(0))
                 action = torch.argmax(q_values).item()
             actions.append(action)
-
+    
         next_states, rewards, dones, _ = zip(*[env.step(action) for env, action in zip(envs, actions)])
         rollouts.extend(zip(states, actions, rewards, next_states, dones))
         states = [next_state if not done else env.reset() for next_state, done, env in zip(next_states, dones, envs)]
+   
     return rollouts, states
    
 # Function to train the Q function. Samples q_num_steps batches of size

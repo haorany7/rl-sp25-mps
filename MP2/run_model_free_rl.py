@@ -19,11 +19,12 @@ flags.DEFINE_integer('episode_len', 200, 'Length of each episode at test time.')
 flags.DEFINE_string('env_name', 'CartPole-v2', 'Name of environment.')
 flags.DEFINE_boolean('vis', False, 'To visualize or not.')
 flags.DEFINE_boolean('vis_save', False, 'To save visualization or not')
-flags.DEFINE_integer('num_train_envs', 1, '')
+flags.DEFINE_integer('num_train_envs', 16, 'Number of parallel environments')
 flags.DEFINE_integer('seed', 0, 'Seed for randomly initializing policies.')
 flags.DEFINE_float('gamma', 0.99, 'Discount factor gamma.')
 flags.DEFINE_enum('algo', None, ['dqn', 'ac'], 'which algo to use, dqn or ac')
 flags.DEFINE_string('logdir', None, 'Directory to store loss plots, etc.')
+flags.DEFINE_list('hidden_sizes', [64, 64], 'Hidden layer sizes')
 flags.mark_flag_as_required('logdir')
 flags.mark_flag_as_required('algo')
 
@@ -37,23 +38,20 @@ def main(_):
     logdir = Path(FLAGS.logdir) / f'seed{FLAGS.seed}' 
     logdir.mkdir(parents=True, exist_ok=True)
     
-    # Setup training environments.
+    # Setup training environments with more parallel envs
     train_envs = [gym.make(FLAGS.env_name) for _ in range(FLAGS.num_train_envs)]
     [env.reset(seed=i+FLAGS.seed) for i, env in enumerate(train_envs)]
     
-    # Setting up validation environments.
+    # Setting up validation environments
     val_envs = [gym.make(FLAGS.env_name) for _ in range(FLAGS.num_episodes)]
     [env.reset(seed=i+1000) for i, env in enumerate(val_envs)]
-    #print("--------------------------------val_envs", val_envs)
-    #print val function
     val_fn = lambda model, device: val(model, device, val_envs, FLAGS.episode_len)
-    #print("--------------------------------val_fn", val_fn)
     
-
-    torch.set_num_threads(1)
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
-    
     state_dim, action_dim = get_dims(FLAGS.env_name)
+    
+    # Convert hidden sizes to integers
+    hidden_sizes = [int(size) for size in FLAGS.hidden_sizes]
     
     if FLAGS.algo == 'dqn':
         n_models = 1
@@ -71,8 +69,18 @@ def main(_):
         model = models[0]
 
     elif FLAGS.algo == 'ac':
-        model = ActorCriticPolicy(state_dim, [16, 32, 64], action_dim)
-        train_model_ac(model, train_envs, FLAGS.gamma, device, logdir, val_fn)
+        model = ActorCriticPolicy(state_dim, hidden_sizes, action_dim)
+        model.to(device)
+        
+        # Pass ablation flags to train_model_ac
+        train_model_ac(
+            model=model,
+            envs=train_envs,
+            gamma=FLAGS.gamma,
+            device=device,
+            logdir=logdir,
+            val_fn=val_fn
+        )
     
     [env.close() for env in train_envs]
     [env.close() for env in val_envs]

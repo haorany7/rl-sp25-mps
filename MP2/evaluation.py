@@ -21,13 +21,20 @@ def test_model_in_env(model, env, episode_len, device, vis=False, vis_save=False
 
 def val(model, device, envs, episode_len):
     states = [e.reset() for e in envs]
+    #print("len of states inside val: ", len(states))
     all_rewards = []
     for i in range(episode_len):
         states = np.array(states)
         with torch.no_grad():
             _states = torch.from_numpy(states).float().to(device)
             _actions = model.act(_states)
+        #print("type of _actions inside val: ", type(_actions))
+        #print("shape of _actions inside val: ", _actions.shape)
+        #print("val of _actions inside val: ", _actions)
         actions = _actions.cpu().numpy()
+        # print("type of action inside val: ", type(actions))
+        # print("shape of action inside val: ", actions.shape)
+        # print("val of action inside val: ", actions)
         step_data = [env.step(actions[i]) for i, env in enumerate(envs)]
         new_states, rewards, dones, infos = list(zip(*step_data))
         states = new_states
