@@ -1,0 +1,11 @@
+gymnasium
+absl-py
+jupyter
+seaborn
+matplotlib
+tqdm
+torch
+torchvision
+tensorboardX
+tensorboard
+stable-baselines3
