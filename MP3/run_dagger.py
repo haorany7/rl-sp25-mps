@@ -20,6 +20,7 @@ flags.DEFINE_string('env_name', 'CartPole-v2', 'Name of environment.')
 flags.DEFINE_boolean('vis', False, 'To visualize or not.')
 flags.DEFINE_boolean('vis_save', False, 'Save visualization')
 flags.DEFINE_string('logdir', './dagger_out', 'Directory to store loss plots, etc.')
+flags.DEFINE_string('version', 'both', 'Version to run: both/none/persistence/penalty')
 
 def get_dims(env_name):
     if env_name == 'CartPole-v2':
@@ -29,7 +30,9 @@ def get_dims(env_name):
         raise Exception(f'Not Implemented')
 
 def main(_):
-    logdir = Path(FLAGS.logdir) / FLAGS.env_name
+    # Modify logdir to include version
+    logdir = Path(FLAGS.logdir) / FLAGS.env_name / FLAGS.version  # Add version to path
+    logdir.mkdir(parents=True, exist_ok=True)  # Create directory if it doesn't exist
 
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     state_dim,action_dim,discrete = get_dims(FLAGS.env_name)
@@ -51,14 +54,22 @@ def main(_):
     def query_expert(state):
         return expert.predict(state.cpu().numpy(),deterministic=True)[0]
 
-    # Load dagger implementation
-    from dagger_trainer import dagger_trainer
-    dagger_trainer(env,learner,query_expert,device)
+    # Modify this part to load different versions with correct file names
+    if FLAGS.version == 'both':
+        from dagger_trainer import dagger_trainer  # original version with both modifications
+    elif FLAGS.version == 'persistence':
+        from dagger_trainer_with_persistence import dagger_trainer  # only persistence
+    elif FLAGS.version == 'penalty':
+        from dagger_trainer_with_penalty import dagger_trainer  # only penalty
+    elif FLAGS.version == 'none':
+        from dagger_trainer_with_none import dagger_trainer  # no modifications
+    
+    dagger_trainer(env, learner, query_expert, device)
         
     # Evaluation
     val_envs = [FrameStack(gym.make('VisualCartPole-v2'),stack_states) for _ in range(FLAGS.num_episodes_val)]
     [env.reset(seed=i+1000) for i, env in enumerate(val_envs)]
-    val(learner, device, val_envs, 200, visual=True)
+    val(learner, device, val_envs, 200, visual=False)
     [env.close() for env in val_envs]
 
     if FLAGS.vis or FLAGS.vis_save:
@@ -69,7 +80,7 @@ def main(_):
         if FLAGS.vis_save:  
             import pathlib
             pathlib.Path(logdir).mkdir(parents=True, exist_ok=True)
-            gif[0].save(fp=f'{logdir}/vis-{env_vis.unwrapped.spec.id}.gif',
+            gif[0].save(fp=f'{logdir}/vis-{FLAGS.version}-{env_vis.unwrapped.spec.id}.gif',  # Add version to filename
                         format='GIF', append_images=gif,
                         save_all=True, duration=50, loop=0)
         env_vis.close()

@@ -32,12 +32,13 @@ def val(model, device, envs, episode_len, visual=False):
     model.reset()
     for i in tqdm(range(episode_len)):
         with torch.no_grad():
-            if not visual:
-                states = np.array(states)
-                _states = torch.from_numpy(states).float().to(device)
+            if visual:
+                states = np.array(states)  # shape: [B, H, W, C]
+                _states = torch.from_numpy(states).float().to(device)  # shape: [B, H, W, C]
+                _states = _states.permute(0, 3, 1, 2)  # → [B, C, H, W]
             else:
-                _states = [torch.tensor(state).permute(2,0,1).to(device).unsqueeze(0) for state in states]
-                _states = torch.cat(_states, 0)
+                _states = torch.tensor(states).float().to(device)
+
             _actions = model.act(_states)
         actions = _actions.cpu().numpy()
         step_data = [env.step(actions[i]) for i, env in enumerate(envs)]

@@ -42,13 +42,13 @@ def get_dims(env_name):
         discrete = False
         return 2, 1, discrete
 
-def load_data():
+def load_data(num_episodes):
     datadir = Path(FLAGS.datadir)
     
     # Load training data for training the policy.
     dt = utils.load_variables(datadir / f'{FLAGS.env_name}.pkl')
-    dt['states'] = dt['states'][:FLAGS.num_episodes_train,:]
-    dt['actions'] = dt['actions'][:FLAGS.num_episodes_train,:]
+    dt['states'] = dt['states'][:num_episodes,:]
+    dt['actions'] = dt['actions'][:num_episodes,:]
     return dt
     
 def main(_):
@@ -57,33 +57,54 @@ def main(_):
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     torch.set_num_threads(4)
     
-    dt = load_data()
-    # Setup your model.
-    state_dim, action_dim, discrete = get_dims(FLAGS.env_name)
-    model = NNPolicy(state_dim, [16, 32, 64], action_dim, discrete)
+    # Generate episode counts on log scale
+    episode_counts = []
+    current = FLAGS.num_episodes_train
+    while current >= 1:
+        episode_counts.append(current)
+        current = current // 2
+    
+    results = []
+    for num_eps in episode_counts:
+        print(f"\n=== Training with {num_eps} episodes ===")
+        
+        # Load data with current number of episodes
+        dt = load_data(num_eps)
+        
+        # Setup and train model
+        state_dim, action_dim, discrete = get_dims(FLAGS.env_name)
+        model = NNPolicy(state_dim, [16, 32, 64], action_dim, discrete)
+        model = model.to(device)
+        train_model(model, logdir, dt['states'], dt['actions'], device, discrete)
+        model = model.eval()
 
-    #Train model
-    from train_bc import train_model
-    train_model(model, logdir,  dt['states'], dt['actions'], device, discrete)
+        # Evaluate
+        val_envs = [gym.make(FLAGS.env_name) for _ in range(FLAGS.num_episodes_val)]
+        [env.reset(seed=i+1000) for i, env in enumerate(val_envs)]
+        reward = val(model, device, val_envs, FLAGS.episode_len, False)
+        [env.close() for env in val_envs]
+        
+        results.append({
+            'num_episodes': num_eps,
+            'reward': reward
+        })
+        print(f"Average reward with {num_eps} episodes: {reward}")
 
-    model = model.eval()
-
-    # Setting up validation environments.
-    val_envs = [gym.make(FLAGS.env_name) for _ in range(FLAGS.num_episodes_val)]
-    [env.reset(seed=i+1000) for i, env in enumerate(val_envs)]
-    val(model, device, val_envs, FLAGS.episode_len, False)
-    [env.close() for env in val_envs]
-
-    if FLAGS.vis or FLAGS.vis_save:
-        env_vis = gym.make(FLAGS.env_name)
-        state, g, gif, info = test_model_in_env(
-            model, env_vis, FLAGS.episode_len, device, vis=FLAGS.vis, 
-            vis_save=FLAGS.vis_save, visual=False)
-        if FLAGS.vis_save:  
-            gif[0].save(fp=f'{logdir}/vis-{env_vis.unwrapped.spec.id}.gif',
-                        format='GIF', append_images=gif,
-                        save_all=True, duration=50, loop=0)
-        env_vis.close()
+    # Plot results
+    plt.figure(figsize=(10,6))
+    episodes = [r['num_episodes'] for r in results]
+    rewards = [r['reward'] for r in results]
+    plt.semilogx(episodes, rewards, 'o-')
+    plt.xlabel('Number of Expert Episodes (log scale)')
+    plt.ylabel('Average Reward')
+    plt.title(f'Data Efficiency - {FLAGS.env_name}')
+    plt.grid(True)
+    plt.savefig(f'{logdir}/data_efficiency.png')
+    
+    # Save numerical results
+    with open(f'{logdir}/data_efficiency_results.txt', 'w') as f:
+        for r in results:
+            f.write(f"Episodes: {r['num_episodes']}, Reward: {r['reward']:.2f}\n")
 
 if __name__ == '__main__':
     app.run(main)
