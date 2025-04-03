@@ -27,17 +27,20 @@ def test_model_in_env(model, env, episode_len, device,
 
 def val(model, device, envs, episode_len, visual=False):
     states = [e.reset() for e in envs]
+    if isinstance(states[0], tuple):  # handle new gym API
+        states = [s[0] for s in states]
     all_rewards = []
     model = model.to(device)
     model.reset()
     for i in tqdm(range(episode_len)):
         with torch.no_grad():
             if visual:
+                _states = [torch.tensor(state).permute(2, 0, 1).to(device).unsqueeze(0) for state in states]
+                _states = torch.cat(_states, 0)
+            else:
                 states = np.array(states)  # shape: [B, H, W, C]
                 _states = torch.from_numpy(states).float().to(device)  # shape: [B, H, W, C]
                 _states = _states.permute(0, 3, 1, 2)  # → [B, C, H, W]
-            else:
-                _states = torch.tensor(states).float().to(device)
 
             _actions = model.act(_states)
         actions = _actions.cpu().numpy()
